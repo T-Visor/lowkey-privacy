@@ -1,4 +1,5 @@
 import torch
+import PIL
 from PIL import Image
 import numpy as np
 from util.feature_extraction_utils import feature_extractor, normalize_transforms, warp_image, normalize_batch
@@ -15,7 +16,6 @@ import torchvision.transforms as transforms
 import sys, os
 
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 to_tensor = transforms.ToTensor()
 
@@ -28,14 +28,11 @@ def enablePrint():
 
 if __name__ == '__main__':
 
-
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', default = './', help = 'directory with images to protect')
 
     args = parser.parse_args()
     dir_root = args.dir
-
 
     eps = 0.05
     n_iters = 50
@@ -52,15 +49,12 @@ if __name__ == '__main__':
     combination = True
     using_subspace = False
     V_reduction_root = './'
-    #model_backbones = ['IR_152', 'IR_152', 'ResNet_152', 'ResNet_152']
-    model_backbones = ['IR_50', 'IR_50']
-    model_roots = ['models/backbone_ir50_ms1m_epoch120.pth', 'backbone_ir50_ms1m_epoch63.pth'] 
+    model_backbones = ['IR_152', 'IR_152', 'ResNet_152', 'ResNet_152']
+    model_roots = ['models/Backbone_IR_152_Arcface_Epoch_112.pth', 'models/Backbone_IR_152_Cosface_Epoch_70.pth', \
+     'models/Backbone_ResNet_152_Arcface_Epoch_65.pth', 'models/Backbone_ResNet_152_Cosface_Epoch_68.pth'] 
     direction = 1
     crop_size = 112
     scale = crop_size / 112.
-
-
-
 
     models_attack, V_reduction, dim = prepare_models(model_backbones,
                  input_size,
@@ -70,41 +64,56 @@ if __name__ == '__main__':
                  combination,
                  using_subspace,
                  V_reduction_root)
+                 #device)
 
-
+    imgs = []
+    paths = []
     for img_name in os.listdir(dir_root):
+
+        if 'attacked' in img_name or 'small' in img_name:
+            continue
+
         img_root = os.path.join(dir_root, img_name)
-        print('Finding reference points')
+
+        if os.path.exists(img_root[:-4] + '_attacked.png'):
+            print(f"skipping {img_name}")
+            continue
+
+        img = Image.open(img_root).convert("RGB")
+        img = img.resize((112, 112))
+        img.save(img_root[:-4] + '_small.png')
+        imgs.append(np.array(img))
+        paths.append(img_root)
+
+    idx = 0
+    batch_size = 8
+    print(len(imgs))
+
+    while idx < len(imgs):
+        print(f"img {idx} to {idx+batch_size} of {len(imgs)}")
+        batch = imgs[idx:idx+batch_size]
+        batch_paths = paths[idx:idx+batch_size]
+        idx += batch_size
+
         reference = get_reference_facial_points(default_square = True) * scale
-        img = Image.open(img_root)
-        h,w,c = np.array(img).shape
 
-            # detect facial points
-        _, landmarks = detect_faces(img)
-        facial5points = [[landmarks[0][j], landmarks[0][j + 5]] for j in range(5)]
-
-        # find transform
-        _,tfm = warp_and_crop_face(np.array(img), facial5points, reference, crop_size=(crop_size, crop_size))
-
-        # find pytorch transform
-        theta = normalize_transforms(tfm, w, h)
-        tensor_img = to_tensor(img).unsqueeze(0).to(device)
+        tensor_img = torch.cat([to_tensor(i).unsqueeze(0) for i in batch], 0).to(device)
+        print(tensor_img.shape)
 
         V_reduction = None
         dim = 512
 
         # find direction vector
-        dir_vec_extractor = get_ensemble(models = models_attack, sigma_gf = None, kernel_size_gf = None, combination = False, V_reduction = V_reduction, warp = True, theta_warp = theta)
+        dir_vec_extractor = get_ensemble(models = models_attack, sigma_gf = None, kernel_size_gf = None, combination = False, V_reduction = V_reduction, warp = False, theta_warp = None)
         dir_vec = prepare_dir_vec(dir_vec_extractor, tensor_img, dim, combination)
-
 
         img_attacked = tensor_img.clone()
         attack = Attack(models_attack, dim, attack_type, eps, c_sim, net_type, lr,
             n_iters, noise_size, n_starts, c_tv, sigma_gf, kernel_size_gf,
-            combination, warp=True, theta_warp=theta, V_reduction = V_reduction)
+            combination, warp=False, theta_warp=None, V_reduction = V_reduction)
 
         img_attacked = attack.execute(tensor_img, dir_vec, direction).detach().cpu()
 
-
-        img_attacked_pil = transforms.ToPILImage()(img_attacked[0])
-        img_attacked_pil.save(img_root[:-4] + '_attacked.png')
+        for img, img_root in zip(img_attacked, batch_paths):
+            img_attacked_pil = transforms.ToPILImage()(img)
+            img_attacked_pil.save(img_root[:-4] + '_attacked.png')
