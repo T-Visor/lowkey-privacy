@@ -49,9 +49,10 @@ if __name__ == '__main__':
     combination = True
     using_subspace = False
     V_reduction_root = './'
-    model_backbones = ['IR_152', 'IR_152', 'ResNet_152', 'ResNet_152']
-    model_roots = ['models/Backbone_IR_152_Arcface_Epoch_112.pth', 'models/Backbone_IR_152_Cosface_Epoch_70.pth', \
-     'models/Backbone_ResNet_152_Arcface_Epoch_65.pth', 'models/Backbone_ResNet_152_Cosface_Epoch_68.pth'] 
+    model_backbones = ['IR_50', 'IR_50']
+    #model_roots = ['models/Backbone_IR_152_Arcface_Epoch_112.pth', 'models/Backbone_IR_152_Cosface_Epoch_70.pth', \
+    # 'models/Backbone_ResNet_152_Arcface_Epoch_65.pth', 'models/Backbone_ResNet_152_Cosface_Epoch_68.pth'] 
+    model_roots = ['models/backbone_ir50_ms1m_epoch120.pth', 'models/backbone_ir50_ms1m_epoch63.pth'] 
     direction = 1
     crop_size = 112
     scale = crop_size / 112.
@@ -64,7 +65,6 @@ if __name__ == '__main__':
                  combination,
                  using_subspace,
                  V_reduction_root)
-                 #device)
 
     imgs = []
     paths = []

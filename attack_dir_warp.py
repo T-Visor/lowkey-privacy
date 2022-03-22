@@ -54,7 +54,7 @@ if __name__ == '__main__':
     V_reduction_root = './'
     #model_backbones = ['IR_152', 'IR_152', 'ResNet_152', 'ResNet_152']
     model_backbones = ['IR_50', 'IR_50']
-    model_roots = ['models/backbone_ir50_ms1m_epoch120.pth', 'backbone_ir50_ms1m_epoch63.pth'] 
+    model_roots = ['models/backbone_ir50_ms1m_epoch120.pth', 'models/backbone_ir50_ms1m_epoch63.pth'] 
     direction = 1
     crop_size = 112
     scale = crop_size / 112.

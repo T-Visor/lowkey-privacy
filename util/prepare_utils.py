@@ -204,9 +204,11 @@ def prepare_models(model_backbones,
     print('=' * 20)
 
     models_attack = []
+
     for i in range(len(model_backbones)):
         model = backbone_dict[model_backbones[i]]
         model.load_state_dict(torch.load(model_roots[i]))
+        print('here')
         models_attack.append(model)
 
     if using_subspace:
