@@ -2,3 +2,5 @@ lowkey-env
 util/__pycache__/
 backbone/__pycache__/
 align/__pycache__/
+
+imgs
